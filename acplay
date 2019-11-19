@@ -1,188 +1,40 @@
 #!/bin/bash
 #
-# Animal Crossing time scheduled music player, by Lutarisco.
-# It plays the AC stream files from the game in various (three) ways.
-# The best feature, in my opinion, is to play along with the current time.
+# Animal Crossing time scheduled music player. Outputs raw WAVE. By Lutarisco.
 #
-## BASIC CONFIGURATION ###############################################
-default='cf'
-path='/Users/Benja/Music/ac'
-######################################################################
+# Dependencies: bc, sox, vgmstream-cli.
+# Recommended usage:
+# acplay | play --ignore-length -
 
-# ACTION BY OPTION '-h'
-# This is the usage's "here document".
-usage() {
-  cat <<EOF | grep -v '^#'
-$(basename -- "${0}"): Animal Crossing time scheduled music player.
-By Lutarisco.
+# Change this to where your files lay.
+dir='/home/pi/Music/ACCF'
 
-Usage: $(basename -- "${0}") [options] [game]
+# Adjust the format of the expected filenames as you wish. Default is '00.brstm' to '23.brstm'.
+format='+%H.brstm'
 
-  Games:
-# pg        Animal Crossing: Population: Growing!
-# ww        Animal Crossing: Wild World
-  cf        Animal Crossing: City Folk
-  nl        Animal Crossing: New Leaf
-# p         Animal Crossing Plaza
-  mk        Mario Kart 8 (DLC)
-# hhd       Animal Crossing: Happy Home Designer
-# af        Animal Crossing: amiibo Festival
+# Number of seconds of fade between tracks.
+fade=3
 
-  Options:
-  -h        show this helpful (questionable) info
-  -l        just list the available music. 
-  -p query  just find and play the specified music.
-  -q        play quietly; no progress from 'play'.
-  -r        just play a random music.
-  -w  num   weather, when available [1(SUNNY)|2(RAINY)|3(SNOWY)]
+trap exit INT
 
-The options act alphabetically, so if you specify two or more
-conflicting options, only the lower alphabetically takes place.
-
-The default is to play the current background music from the default game
-If an action is specified, then the default is to act over the whole folder.
-
-Default game:  ${default}
-Music folder:  ${path}
-EOF
-}
-
-# Switches
-list='false'
-play='false'
-random='false'
-
-# The option parsing. Note that most of the options are just "switches".
-# Why not functions? For readability, of course.
-while getopts ':hlp:qrw:' opt; do
-  case "${opt}" in
-    h ) usage; exit 0 ;;
-    l ) list='true' ;;
-    p ) play='true'; query="${OPTARG}" ;;
-    q ) export SOX_OPTS='-q' ;;
-    r ) random='true' ;;
-    w ) weather="${OPTARG}" ;;
-    : ) echo "option -${OPTARG} requires an argument" >&2; usage; exit 1 ;;
-    ? ) echo "$(basename "${0}"): ${opt}: No such option" >&2; usage; exit 1 ;;
-  esac
-done
-shift "$((${OPTIND} - 1))"
-
-# This sets the most used variables here.
-# I think the best was to not "initialize" the other variables. Not necessary.
-game="${1:-"${default}"}"
-dir="${path}/${game}"
-if [[ -z "${1}" ]]; then
-  folder="${path}"
-else
-  folder="${dir}"
-fi
-
-# The folders should exist.
-if [[ ! -d "${path}" ]]; then
-  echo "$(basename "${0}"): ${path}: No such directory" >&2
-  exit 1
-fi
-if [[ ! -d "${dir}" ]]; then
-  echo "$(basename "${0}"): ${dir}: No such directory" >&2
-  exit 1
-fi
-
-# This is how the files for each hour are named inside each game folder.
-# I tried to make it the most editable as possible. Well, it wasn't possible.
-# It uses `date` (strftime(3)) and the variable 'weather'.
-case "${game}" in
-  cf )
-    fmt='%-H-00_%-l_%p${weather}.brstm'
-    case "${weather}" in
-      3 ) weather='_Snow' ;;
-      2 ) weather='_Rain' ;;
-    esac ;;
-  nl )
-    fmt='STRM_BGM_OUTDOOR%H_${weather}.bcstm'
-    case "${weather}" in
-      3 ) weather='SNOWY' ;;
-      2 ) weather='RAINY' ;;
-      * ) weather='SUNNY' ;;
-    esac ;;
-  mk )
-    fmt='Animal_Reslut_WU.aa.32.dspadpcm.bfstm' ;;
-esac
-fmt="${fmt//\$\{weather\}/${weather}}"
-
-# ACTION BY OPTION '-l'
-# Specially made against those nasty unplayable files.
-if "${list}"; then
-  find "${folder}" -type f | \
-    while read v; do
-      if vgmstream -m "${v}" &>/dev/null; then
-        echo "${v##*/}"
-      fi
-    done
-  exit 0
-fi
-
-# ACTION BY OPTION '-p'
-# Yeah, maybe this deserves a better explanation. But isn't it great?
-if "${play}"; then
-  r="$(find "${folder}" -type f -iname "*${query}*")"
-  while read v; do
-    if vgmstream -m "${v}" &>/dev/null; then
-      file="${v}"
-      break
-    fi
-  done <<< "${r}"
-  if [[ -z "${file}" ]]; then
-    echo "$(basename "${0}"): ${folder}: No suitable files found" >&2
-    exit 1
-  fi
-  if [ "$(vgmstream -m "${file}" | grep '^loop')" ]; then
-    vgmstream -Pc "${file}" | play --ignore-length -
-  else
-    vgmstream -P "${file}" | play -
-  fi
-fi
-
-# ACTION BY OPTION '-r'
-# This iterating thing is brutally great and severely stable. In my opinion.
-if "${random}"; then
-  r="$(find "${folder}" -type f | \
-    while read v; do echo "${RANDOM}"$'\t'"${v}"; done | \
-    sort -n | cut -f 2-)"
-  while read p; do
-    if vgmstream -m "${p}" &>/dev/null; then
-      file="${p}"
-      break
-    fi
-  done <<< "${r}"
-  if [[ -z "${file}" ]]; then
-    echo "$(basename "${0}"): ${folder}: No suitable files found" >&2
-    exit 1
-  fi
-  if vgmstream -m "${file}" | grep -q -s '^loop'; then
-    vgmstream -P -c "${file}" | play --ignore-length -
-  else
-    vgmstream -P "${file}" | play -
-  fi
-  exit 0
-fi
-
-# And now, the thing that worths it the most here.
-# The disadvantage is that sox doesn't know the length. Fixed in legacy.
 while [[ "${?}" -eq 0 ]]; do
-  file="${dir}/$(date "+${fmt}")"
-  left="$((3600-10#$(date "+%M")*60-10#$(date "+%S")))"
-  vgmstream -P -c "${file}" | play --ignore-length - trim 0 "${left}" fade 0 -0 1
+  name="$(date "${format}")"
+  file="${dir}/${name}"
+  data="$(vgmstream-cli -m "${file}")"
+  base="$(grep start <<< "${data}" | cut -f2 -d'(' | cut -f1 -d' ')"
+  if [[ "${base}" != *:* ]]; then
+    base="0:${base}"
+  fi
+  base="$(bc -l <<< "${base%:*}*60+${base#*:}")"
+  full="$(grep total <<< "${data}" | cut -f2 -d'(' | cut -f1 -d' ')"
+  if [[ "${full}" != *:* ]]; then
+    full="0:${full}"
+  fi
+  full="$(bc -l <<< "${full%:*}*60+${full#*:}")"
+  left="$((3600-$(date "+%s")%3600-${fade}))"
+  plays="$(bc -l <<< "(${left}-${base})/(${full}-${base})")"
+  vgmstream-cli -p -f "${fade}" -l "${plays}" "${file}"
 done
 
-## LEGACY
-## Compatible with programs that need endings. It uses `bc`.
-# while [[ "${?}" -eq 0 ]]; do
-#   file="${dir}/$(date "+${fmt}")"
-#   data="$(vgmstream -m "${file}")"
-#   base="$(grep '^loop s' <<< "${data}" | cut -f 2 -d '(' | cut -f 1 -d ' ')"
-#   full="$(grep '^stream' <<< "${data}" | cut -f 2 -d '(' | cut -f 1 -d ' ')"
-#   left="$((3600-10#$(date "+%M")*60-10#$(date "+%S")))"
-#   plays="$(bc -l <<< "(${left}-${base})/(${full}-${base})")"
-#   vgmstream -P -f 1 -l "${plays}" "${file}" | play -
-# done
+# If using 'sox', please use the '--ignore-length' flag with it.
+# If unset, sox will stop playing when the first track finishes.
