@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Animal Crossing time scheduled music player. Outputs raw WAVE. By Lutarisco.
+# Animal Crossing time scheduled music player. Outputs continuous raw WAVE. By Lutarisco.
 #
 # Dependencies: bc, vgmstream-cli, sox (to play).
 # Recommended usage:
