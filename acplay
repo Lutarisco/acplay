@@ -2,7 +2,7 @@
 #
 # Animal Crossing time scheduled music player. Outputs raw WAVE. By Lutarisco.
 #
-# Dependencies: bc, sox, vgmstream-cli.
+# Dependencies: bc, vgmstream-cli, sox (to play).
 # Recommended usage:
 # acplay | play --ignore-length -
 
