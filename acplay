@@ -1,39 +1,70 @@
 #!/bin/bash
 #
-# Animal Crossing time scheduled music player. Outputs continuous raw WAVE. By Lutarisco.
-#
+# Animal Crossing time scheduled music player. Outputs raw WAVE. By Lutarisco.
+# Input either PG, CF, NL, or NH as a first argument,
+# and either SUNNY, RAINY or SNOWY as a second optional argument.
+
 # Dependencies: bc, vgmstream-cli, sox (to play).
+
 # Recommended usage:
-# acplay | play --ignore-length -
+# acplay cf sunny | play --ignore-length -
 
-# Change this to where your files lay.
-dir='/home/pi/Music/ACCF'
-
-# Adjust the format of the expected filenames as you wish. Default is '00.brstm' to '23.brstm'.
-format='+%H.brstm'
-
-# Number of seconds of fade between tracks.
-fade=3
+shopt -s nocasematch
 
 trap exit INT
 
+# Where your files lay.
+dir="/Users/benjamin/Music/Animal Crossing"
+towntune="${dir}/WildWorldDefaultTune.wav"
+
+# Fade-out before next hour, in seconds.
+fade=3
+
+case "${2}" in
+RAINY)
+  weather=RAINY
+  ;;
+SNOWY)
+  weather=SNOWY
+  ;;
+*)
+  weather=SUNNY
+  ;;
+esac
+
+case "${1}" in
+PG)
+  dir="${dir}/ACPG"
+  date="+STRM_BGM_OUTDOOR%H_${weather}.bcstm"
+  ;;
+CF)
+  dir="${dir}/ACCF"
+  date="+%H-00_%-l_%p_${weather}.brstm"
+  ;;
+NL)
+  dir="${dir}/ACNL"
+  date="+STRM_BGM_OUTDOOR%H_${weather}.bcstm"
+  ;;
+NH)
+  dir="${dir}/ACNH"
+  date="+BGM_24Hour_%H_${weather}.bwav"
+  ;;
+*)
+  >&2 echo 'Available options: PG, CF, NL, NH'
+  exit 1
+  ;;
+esac
+
 while [[ "${?}" -eq 0 ]]; do
-  name="$(date "${format}")"
-  file="${dir}/${name}"
+  file="${dir}/$(date "${date}")"
   data="$(vgmstream-cli -m "${file}")"
-  base="$(grep start <<< "${data}" | cut -f2 -d'(' | cut -f1 -d' ')"
-  if [[ "${base}" != *:* ]]; then
-    base="0:${base}"
-  fi
-  base="$(bc -l <<< "${base%:*}*60+${base#*:}")"
-  full="$(grep total <<< "${data}" | cut -f2 -d'(' | cut -f1 -d' ')"
-  if [[ "${full}" != *:* ]]; then
-    full="0:${full}"
-  fi
-  full="$(bc -l <<< "${full%:*}*60+${full#*:}")"
-  left="$((3600-$(date "+%s")%3600-${fade}))"
+  base="$(grep '^loop start' <<< "${data}" | cut -d' ' -f 3)"
+  full="$(grep '^loop end' <<< "${data}" | cut -d' ' -f 3)"
+  rate="$(grep '^sample rate' <<< "${data}" | cut -d' ' -f 3)"
+  left="$(((3600-$(date "+%s")%3600-${fade})*${rate}))"
   plays="$(bc -l <<< "(${left}-${base})/(${full}-${base})")"
   vgmstream-cli -p -f "${fade}" -l "${plays}" "${file}"
+  vgmstream-cli -p "${towntune}"
 done
 
 # If using 'sox', please use the '--ignore-length' flag with it.
