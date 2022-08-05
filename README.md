@@ -23,7 +23,7 @@ Install `sox` with your favourite package manager. If you can't, then head to th
 I tried to make this as simple as possible.
 First, you should have some special files to play. It is recommended to have all 24 of them (one per hour), and optionally the different weather variations. They come in "stream" files, commonly ripped directly from the games' files, or created by the community. I will NOT provide these files as I'm not of the legal repercussions of doing so.
 
-The files filenames should all be named correctly, as per the format inside the script (you can change this!).
+The filenames should all be named correctly, as per the format inside the script (you can change this!).
 And please take your time to change in the script the path to those files as well.
 ```
 /path/to/Animal Crossing/ACCF
@@ -34,7 +34,7 @@ And please take your time to change in the script the path to those files as wel
 ├── ...
 └── 23_SUNNY.brstm
 ```
-The specified folder should contain the folders containing the files to be played hour by hour, separated by their game. Do you know the `date` command? It uses `strftime(3)` to parse the time. Well, that's what the script uses. There's a section in the script which specifies in what format are the files arranged, using those `%`. The default one is a good example.
+The specified folder should contain the folders containing the files to be played hour by hour, separated by their game. Different weathers are optional, of course. Do you know the `date` command? It uses `strftime(3)` to parse the time. Well, that's what the script uses. There's a section in the script which specifies in what format are the files arranged, using those `%`. The default one is a good example.
 
 You can also have an audio file with a chime to play at every hour.
 
