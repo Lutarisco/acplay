@@ -15,7 +15,7 @@ Thanks to *Halley's Comet Software* for supporting the `vgmstream` project. It i
 Available with most UNIX systems, for doing... math.
 
 ### sox
-You only need this to play that data this program outputs. That means always.
+You only need this to play that data this program outputs. That means almost always. The only side case I can think about is to broadcast an Internet radio, e.g. with Icecast.
 Install `sox` with your favourite package manager. If you can't, then head to this page:
 > http://sox.sourceforge.net
 
