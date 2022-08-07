@@ -35,19 +35,19 @@ esac
 case "${1}" in
 PG)
   dir="${dir}/ACPG"
-  date="+STRM_BGM_OUTDOOR%H_${weather}.bcstm"
+  date="+%H_${weather}.bcstm"
   ;;
 CF)
   dir="${dir}/ACCF"
-  date="+%H-00_%-l_%p_${weather}.brstm"
+  date="+%H_${weather}.brstm"
   ;;
 NL)
   dir="${dir}/ACNL"
-  date="+STRM_BGM_OUTDOOR%H_${weather}.bcstm"
+  date="+%H_${weather}.bcstm"
   ;;
 NH)
   dir="${dir}/ACNH"
-  date="+BGM_24Hour_%H_${weather}.bwav"
+  date="+%H_${weather}.bwav"
   ;;
 *)
   >&2 echo 'Available options: PG, CF, NL, NH'
